@@ -19,9 +19,8 @@ main(int argc, char* argv[])
   void (*b_fn)(void);
   void (*d_fn)(void);
   void (*n_fn)(void);
-  void (*o_fn)(void);
 
-  a_handle = dlopen("liba.so", RTLD_LAZY | RTLD_GLOBAL);
+  a_handle = dlopen("liba.so", RTLD_LAZY | RTLD_LOCAL);
   if (!a_handle) 
   {
     fprintf(stderr, "%s\n", dlerror());
@@ -39,17 +38,19 @@ main(int argc, char* argv[])
   b_fn = dlsym(b_handle, "speak");
 
   /*
-    Loads either the 'speak' referenced above
-    or the speak defined as global
+    Loads either the 'speak' referenced in this same file
+    or, if that is commented out, it loads the globally loaded `speak`
+
+    If both are loaded globally, the first is used
   */
   d_fn = dlsym(RTLD_DEFAULT, "speak");
   n_fn = dlsym(RTLD_NEXT, "speak");
   if (!n_fn)
   {
+    // this seems to always fail. I don't understand why
     fprintf(stderr, "%s\n", dlerror());
-    exit(1);
+    // exit(1);
   }
-  o_fn = dlsym(RTLD_NEXT, "speak");
 
 
   //speak();
@@ -57,18 +58,19 @@ main(int argc, char* argv[])
   (*a_fn)();
   (*b_fn)();
   (*d_fn)();
-  (*n_fn)(); // SIGSEGV
-//  (*o_fn)(); // SIGSEGV
+//  (*n_fn)(); // SIGSEGV
 
   dlclose(a_handle);
   dlclose(b_handle);
 
 /*
+  // all of these will SIGSEGV since they have been unloaded
+  // There is, however, an option which prevents unloading
+  // of specific functions
   (*a_fn)();
   (*b_fn)();
   (*d_fn)();
   (*n_fn)();
-  (*o_fn)();
 */
   return 0;
 }
