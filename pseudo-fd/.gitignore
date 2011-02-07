@@ -3,3 +3,4 @@ CMake*
 *.so
 *.cmake
 *.dSYM
+Makefile

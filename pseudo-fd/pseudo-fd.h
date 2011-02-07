@@ -18,7 +18,6 @@ struct pfd {
   int priv_fd;
   enum PFD_STATUS status;
   char buffer[PFD_MAX_BUF];
-  int max_write;
 };
 
 // malloc and init the pfd

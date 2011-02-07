@@ -1,10 +1,13 @@
 #include <pthread.h> // pthread_t, pthread_create
 #include <string.h> // strerror
-#include <stdio.h> // fprintf puts
 #include <unistd.h> // sleep
 #include <stdlib.h> // exit
 #include <fcntl.h> // fcntl
 #include <sys/socket.h> // setsockopt
+
+#ifdef DEBUG
+#include <stdio.h> // fprintf puts
+#endif
 
 #include "pseudo-fd.h"
 
@@ -21,8 +24,10 @@ pfd_create()
 
   // todo try SOCK_DGRAM
   if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
+#ifdef DEBUG
     perror("socketpair");
     exit(1);
+#endif
   }
 
   // Put in non-block mode
@@ -33,7 +38,8 @@ pfd_create()
   flags |= O_NONBLOCK;
   fcntl(sv[1], F_SETFL, flags);
 
-  // Shrink buffer to two bytes (only works with AF_UNIX, not AF_INET)
+  // Shrink buffer to one byte (only works with AF_UNIX, not AF_INET)
+  // only works on OS X (Linux has 1920 as the minimum)
   setsockopt(sv[0], SOL_SOCKET, SO_SNDBUF, &buflen, sizeof(int));
   setsockopt(sv[0], SOL_SOCKET, SO_RCVBUF, &buflen, sizeof(int));
   setsockopt(sv[1], SOL_SOCKET, SO_SNDBUF, &buflen, sizeof(int));
@@ -72,14 +78,12 @@ pfd_make_readable(struct pfd* pfd)
   pfd->status |= PFD_READ;
 
   result = write(pfd->priv_fd, &pfd->buffer, 1);
-  if (1 == result)
-  {
-    return;
-  }
-  else
+#ifdef DEBUG
+  if (1 != result)
   {
     printf("should have written 1 byte but wrote %i\n", result);
   }
+#endif
 }
 
 void
@@ -94,10 +98,12 @@ pfd_make_unreadable(struct pfd* pfd)
   pfd->status &= ~PFD_READ;
 
   result = read(pfd->fd, &pfd->buffer, PFD_MAX_BUF);
+#ifdef DEBUG
   if (1 != result)
   {
     printf("should have read %i byte but read %i\n", 1, result);
   }
+#endif
 }
 
 
@@ -114,10 +120,12 @@ pfd_make_writable(struct pfd* pfd)
   pfd->status |= PFD_WRITE;
 
   result = read(pfd->priv_fd, &pfd->buffer, max_write);
+#ifdef DEBUG
   if (max_write != result)
   {
-    printf("should have read %i byte but read %i\n", max_write, result);
+    printf("should have read %i byte(s) but read %i\n", max_write, result);
   }
+#endif
 }
 
 // Put one byte back on the buffer
@@ -133,8 +141,10 @@ pfd_make_unwritable(struct pfd* pfd)
   pfd->status &= ~PFD_WRITE;
 
   result = write(pfd->fd, &pfd->buffer, PFD_MAX_BUF);
+#ifdef DEBUG
   if (max_write != result)
   {
-    printf("should have written %i byte but wrote %i\n", max_write, result);
+    printf("should have written %i byte(s) but wrote %i\n", max_write, result);
   }
+#endif
 }
