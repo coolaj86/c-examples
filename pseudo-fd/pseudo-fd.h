@@ -1,7 +1,7 @@
 #ifndef _PFD_H_
 #define _PFD_H_
 
-#define PFD_MAX_BUF 8192
+#define PFD_MAX_BUF 1920
 #define PFD_MIN_CHUNK 960
 
 enum PFD_STATUS {

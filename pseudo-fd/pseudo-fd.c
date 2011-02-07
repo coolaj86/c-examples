@@ -8,8 +8,7 @@
 
 #include "pseudo-fd.h"
 
-#define PFD_MAX_BUF 8192
-#define PFD_MIN_CHUNK 960
+static int max_write = 0; // varies by platform
 
 struct pfd*
 pfd_create()
@@ -44,13 +43,13 @@ pfd_create()
   pfd->fd = sv[0];
   pfd->priv_fd = sv[1];
   pfd->status = 0;
-  pfd->max_write = 0;
 
   do 
   {
     result = write(pfd->fd, &pfd->buffer, PFD_MAX_BUF);
-    pfd->max_write += result;
+    max_write += result;
   } while (PFD_MAX_BUF == result);
+  max_write = max_write;
 
   return pfd;
 }
@@ -114,10 +113,10 @@ pfd_make_writable(struct pfd* pfd)
   }
   pfd->status |= PFD_WRITE;
 
-  result = read(pfd->priv_fd, &pfd->buffer, PFD_MIN_CHUNK);
-  if (PFD_MIN_CHUNK != result)
+  result = read(pfd->priv_fd, &pfd->buffer, max_write);
+  if (max_write != result)
   {
-    printf("should have read %i byte but read %i\n", PFD_MIN_CHUNK, result);
+    printf("should have read %i byte but read %i\n", max_write, result);
   }
 }
 
@@ -134,8 +133,8 @@ pfd_make_unwritable(struct pfd* pfd)
   pfd->status &= ~PFD_WRITE;
 
   result = write(pfd->fd, &pfd->buffer, PFD_MAX_BUF);
-  if (PFD_MIN_CHUNK != result)
+  if (max_write != result)
   {
-    printf("should have written %i byte but wrote %i\n", PFD_MIN_CHUNK, result);
+    printf("should have written %i byte but wrote %i\n", max_write, result);
   }
 }
